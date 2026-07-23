@@ -1,0 +1,64 @@
+/* src/styles/landing.css */
+.landing-container {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 80px 24px 60px;
+}
+
+.landing-title-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 60px;
+}
+
+.landing-subtitle {
+  color: #aaa;
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.landing-title {
+  color: #111;
+  font-size: 72px;
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: -2px;
+}
+
+.landing-buttons {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.btn-login {
+  flex: 1;
+  padding: 16px;
+  background: #F97316;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 900;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+}
+
+.btn-signup {
+  flex: 1;
+  padding: 16px;
+  background: rgba(249, 115, 22, 0.1);
+  border: 2px solid rgba(249, 115, 22, 0.4);
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #F97316;
+  text-align: center;
+  text-decoration: none;
+}

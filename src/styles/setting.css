@@ -1,0 +1,144 @@
+/* src/styles/setting.css */
+.setting-container {
+  padding: 24px 16px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.setting-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 24px;
+}
+
+.setting-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.setting-label {
+  font-size: 15px;
+  color: var(--text);
+}
+
+.setting-value {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.setting-toggle {
+  width: 48px;
+  height: 28px;
+  border-radius: 99px;
+  background: var(--border);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.setting-toggle.on {
+  background: var(--orange);
+}
+
+.setting-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: white;
+  transition: left 0.2s;
+}
+
+.setting-toggle.on .setting-toggle-thumb {
+  left: 23px;
+}
+
+.setting-edit-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.setting-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+}
+
+.setting-input:focus {
+  border-color: var(--orange);
+}
+
+.setting-btn {
+  padding: 12px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.setting-btn-small {
+  padding: 8px 14px;
+  background: var(--orange);
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.setting-btn-small.gray {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1.5px solid var(--border);
+}
+
+.setting-btn-danger {
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1.5px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  font-size: 14px;
+  color: #ef4444;
+  cursor: pointer;
+  text-align: left;
+}
+
+.setting-delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.05);
+  border-radius: 12px;
+}
+
+.setting-delete-confirm p {
+  font-size: 13px;
+  color: #ef4444;
+}

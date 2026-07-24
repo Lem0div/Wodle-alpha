@@ -1,7 +1,10 @@
 // src/app/[id]/home/page.tsx
 import TopNav from '@/components/TopNav'
 import BottomNav from '@/components/BottomNav'
+import StreakCard from '@/components/StreakCard'
+import ActionTabsCard from '@/components/ActionTabsCard'
 import { createClient } from '@/utils/supabase/server'
+import '@/styles/home.css'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -20,6 +23,10 @@ export default async function HomePage({ params }: Props) {
   return (
     <div>
       <TopNav />
+      <main className="home-container">
+        <StreakCard streak={profile?.streak ?? 0} />
+        <ActionTabsCard userId={id} />
+      </main>
       <BottomNav userId={id} />
     </div>
   )

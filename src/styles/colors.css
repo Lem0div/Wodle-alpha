@@ -10,6 +10,14 @@
   --orange-40: rgba(249, 115, 22, 0.4);
   --yellow: #EAB308;
   --blue: #67AAF9;
+  --blue-10: rgba(103, 170, 249, 0.1);
+  --blue-40: rgba(103, 170, 249, 0.4);
+  --purple: #8B5CF6;
+  --purple-10: rgba(139, 92, 246, 0.1);
+  --purple-40: rgba(139, 92, 246, 0.4);
+  --orange-mid: #EC9A52;
+  --blue-mid: #7FB3F5;
+  --purple-mid: #B08EE8;
 }
 
 html.dark {
@@ -23,4 +31,12 @@ html.dark {
   --orange-40: rgba(249, 115, 22, 0.4);
   --yellow: #EAB308;
   --blue: #67AAF9;
+  --blue-10: rgba(103, 170, 249, 0.15);
+  --blue-40: rgba(103, 170, 249, 0.4);
+  --purple: #8B5CF6;
+  --purple-10: rgba(139, 92, 246, 0.15);
+  --purple-40: rgba(139, 92, 246, 0.4);
+  --orange-mid: #8A5530;
+  --blue-mid: #2E5F82;
+  --purple-mid: #4F3A78;
 }

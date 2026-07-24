@@ -1,0 +1,10 @@
+/* src/styles/home.css */
+.home-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  padding-bottom: 84px;
+  max-width: 480px;
+  margin: 0 auto;
+}

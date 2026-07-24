@@ -1,0 +1,68 @@
+/* src/styles/streakcard.css */
+.streak-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+}
+
+.streak-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.streak-count {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.streak-chevron {
+  color: var(--text-secondary);
+}
+
+.streak-week-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.streak-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.streak-bubble {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+}
+
+.streak-bubble.today {
+  color: white;
+  background: var(--orange);
+  border-color: var(--orange);
+}
+
+.streak-indicator-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--orange);
+}

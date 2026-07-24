@@ -1,0 +1,153 @@
+/* src/styles/actiontabscard.css */
+/* flex row: card first (flex:1, takes whatever's left) then tabs — this
+   guarantees tabs-width + card-width always equals the wrap's full
+   width (same as .streak-card), instead of relying on two separate calc()
+   expressions to agree. z-index: 0 makes .tabcard-wrap itself the stacking
+   context, so .tabcard-tabs (z-index -1) and .tabcard-outer (z-index 1) are
+   compared directly against each other and stay contained — neither escapes
+   out to compete with unrelated page content, which is what broke clicks
+   before. */
+.tabcard-wrap {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  align-items: flex-start;
+}
+
+.tabcard-outer {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  min-height: 440px;
+  padding: 32px 46px 32px 24px;
+  border-radius: 24px;
+  background: var(--bg-secondary);
+}
+
+/* NOTE: keep this fully opaque (not the -10 alpha tokens) — the tabs render
+   underneath it (z-index -1 vs. 1, see .tabcard-wrap above) and rely on it
+   being solid to hide the tucked-under 24px */
+
+.tabcard-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.tabcard-content.fade-in {
+  animation: tabcard-fade-in 0.2s ease;
+}
+
+@keyframes tabcard-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tabcard-icon {
+  color: var(--text);
+}
+
+.tabcard-orange .tabcard-icon {
+  color: var(--orange);
+}
+
+.tabcard-blue .tabcard-icon {
+  color: var(--blue);
+}
+
+.tabcard-purple .tabcard-icon {
+  color: var(--purple);
+}
+
+.tabcard-heading {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.tabcard-subtext {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.tabcard-cta {
+  padding: 14px 20px;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  background: var(--text);
+}
+
+.tabcard-orange .tabcard-cta {
+  background: var(--orange);
+}
+
+.tabcard-blue .tabcard-cta {
+  background: var(--blue);
+}
+
+.tabcard-purple .tabcard-cta {
+  background: var(--purple);
+}
+
+.tabcard-tabs {
+  position: relative;
+  z-index: -1;
+  flex-shrink: 0;
+  /* pulls the tabs 24px left, under the card's own box, matching the card's
+     24px border-radius so the rounded corner is the only place that overlap
+     shows through */
+  margin-left: -24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabcard-tab {
+  position: relative;
+  width: 108px;
+  height: 88px;
+  border: none;
+  border-radius: 0 18px 18px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.tabcard-tab-orange {
+  background: var(--orange-mid);
+}
+
+.tabcard-tab-blue {
+  background: var(--blue-mid);
+}
+
+.tabcard-tab-purple {
+  background: var(--purple-mid);
+}
+
+/* selected tab becomes the card's own color; its left edge is tucked under
+   the card (see .tabcard-outer's negative margin-left) so it's never
+   actually visible */
+.tabcard-tab.active {
+  background: var(--bg-secondary);
+  color: var(--text);
+  box-shadow: none;
+}
+

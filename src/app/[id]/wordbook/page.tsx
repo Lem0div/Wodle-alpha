@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import TopNav from '@/components/TopNav'
 import BottomNav from '@/components/BottomNav'
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { incrementQuestProgress } from '@/utils/quest'
 import '@/styles/wordbook.css'
 
 type Wordbook = {
@@ -67,6 +68,7 @@ export default function WordbookListPage() {
     setNewTitle('')
     setNewDescription('')
     setShowCreateForm(false)
+    await incrementQuestProgress('wordbook_create', 1)
   }
 
   function startEdit(wb: Wordbook) {

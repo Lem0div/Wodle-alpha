@@ -23,6 +23,7 @@
   align-items: center;
   min-height: 440px;
   padding: 32px 46px 32px 24px;
+  border: 1.5px solid var(--border);
   border-radius: 24px;
   background: var(--bg-secondary);
 }
@@ -52,16 +53,38 @@
   }
 }
 
+.tabcard-icon-badge {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  margin-bottom: 4px;
+}
+
 .tabcard-icon {
   color: var(--text);
+}
+
+.tabcard-orange .tabcard-icon-badge {
+  background: var(--orange-10);
 }
 
 .tabcard-orange .tabcard-icon {
   color: var(--orange);
 }
 
+.tabcard-blue .tabcard-icon-badge {
+  background: var(--blue-10);
+}
+
 .tabcard-blue .tabcard-icon {
   color: var(--blue);
+}
+
+.tabcard-purple .tabcard-icon-badge {
+  background: var(--purple-10);
 }
 
 .tabcard-purple .tabcard-icon {
@@ -81,6 +104,11 @@
 }
 
 .tabcard-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
   padding: 14px 20px;
   border: none;
   border-radius: 14px;
@@ -117,29 +145,32 @@
 
 .tabcard-tab {
   position: relative;
-  width: 108px;
-  height: 88px;
+  width: 94px;
+  height: 76px;
   border: none;
-  border-radius: 0 18px 18px 0;
+  border-radius: 0 20px 20px 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
   cursor: pointer;
-  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
+/* ghost/tinted style — quiet by default so the active tab (card-colored)
+   reads as the one thing that's "on" */
 .tabcard-tab-orange {
-  background: var(--orange-mid);
+  background: var(--orange-10);
+  color: var(--orange);
 }
 
 .tabcard-tab-blue {
-  background: var(--blue-mid);
+  background: var(--blue-10);
+  color: var(--blue);
 }
 
 .tabcard-tab-purple {
-  background: var(--purple-mid);
+  background: var(--purple-10);
+  color: var(--purple);
 }
 
 /* selected tab becomes the card's own color; its left edge is tucked under

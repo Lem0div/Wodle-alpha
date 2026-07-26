@@ -55,9 +55,21 @@
 }
 
 .streak-bubble.today {
+  color: var(--orange);
+  background: var(--bg);
+  border-color: var(--orange);
+}
+
+.streak-bubble.attended {
   color: white;
   background: var(--orange);
   border-color: var(--orange);
+}
+
+.streak-count-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .streak-indicator-dot {

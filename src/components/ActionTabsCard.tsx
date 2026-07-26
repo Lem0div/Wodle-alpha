@@ -60,13 +60,16 @@ export default function ActionTabsCard({ userId }: Props) {
     <div className="tabcard-wrap">
       <div className={`tabcard-outer tabcard-${tab.color}`}>
         <div key={active} className="tabcard-content fade-in">
-          <Icon className="tabcard-icon" width={36} height={36} />
+          <div className="tabcard-icon-badge">
+            <Icon className="tabcard-icon" width={32} height={32} />
+          </div>
           <h3 className="tabcard-heading">{tab.heading}</h3>
           <p className="tabcard-subtext">{tab.subtext}</p>
           <button
             className="tabcard-cta"
             onClick={() => router.push(tab.href(userId))}
           >
+            <Icon width={20} height={20} />
             {tab.cta}
           </button>
         </div>

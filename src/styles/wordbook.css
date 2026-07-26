@@ -51,6 +51,70 @@
   cursor: pointer;
 }
 
+.wordbook-study-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 14px;
+  margin-bottom: 16px;
+}
+
+.wordbook-study-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.wordbook-pill-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.wordbook-pill {
+  padding: 8px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.wordbook-pill.active {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: white;
+}
+
+.wordbook-study-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.wordbook-study-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  background: var(--orange);
+  cursor: pointer;
+}
+
+.wordbook-study-btn.secondary {
+  background: var(--bg);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+}
+
 .wordbook-form {
   display: flex;
   flex-direction: column;

@@ -7,12 +7,15 @@ import { useEffect, useState } from 'react'
 import TopNav from '@/components/TopNav'
 import BottomNav from '@/components/BottomNav'
 import { PlusIcon, PencilIcon, TrashIcon, ArrowLeftIcon } from '@heroicons/react/24/outline'
+import { incrementQuestProgress } from '@/utils/quest'
 import '@/styles/wordbook.css'
 
 type Wordbook = {
   id: string
   title: string
   description: string
+  last_mode: string | null
+  last_order: string | null
 }
 
 type Word = {
@@ -44,6 +47,9 @@ export default function WordbookDetailPage() {
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
+  const [mode, setMode] = useState('term')
+  const [order, setOrder] = useState('normal')
+
   useEffect(() => {
     async function fetchData() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -51,7 +57,7 @@ export default function WordbookDetailPage() {
 
       const { data: wb } = await supabase
         .from('wordbook')
-        .select('id, title, description')
+        .select('id, title, description, last_mode, last_order')
         .eq('id', wordbookId)
         .eq('user_id', user.id)
         .single()
@@ -61,6 +67,8 @@ export default function WordbookDetailPage() {
         return
       }
       setWordbook(wb)
+      setMode(wb.last_mode ?? 'term')
+      setOrder(wb.last_order ?? 'normal')
 
       const { data: wordData } = await supabase
         .from('word')
@@ -87,6 +95,7 @@ export default function WordbookDetailPage() {
     setNewTerm('')
     setNewDefinition('')
     setShowCreateForm(false)
+    await incrementQuestProgress('word_add', 1)
   }
 
   function startEdit(word: Word) {
@@ -115,6 +124,16 @@ export default function WordbookDetailPage() {
     setDeleteConfirmId(null)
   }
 
+  async function handleStudyStart() {
+    await supabase
+      .from('wordbook')
+      .update({ last_mode: mode, last_order: order })
+      .eq('id', wordbookId)
+    router.push(`/${userId}/wordbook/${wordbookId}/study?mode=${mode}&order=${order}`)
+  }
+
+  const wrongCount = words.filter(w => w.wrong_count > 0).length
+
   if (!loading && !wordbook) return null
 
   return (
@@ -137,6 +156,37 @@ export default function WordbookDetailPage() {
           </button>
         </div>
         {wordbook?.description && <p className="wordbook-desc">{wordbook.description}</p>}
+
+        {!loading && words.length > 0 && (
+          <div className="wordbook-study-section">
+            <div>
+              <span className="wordbook-study-label">문제 유형</span>
+              <div className="wordbook-pill-row">
+                <button className={`wordbook-pill ${mode === 'term' ? 'active' : ''}`} onClick={() => setMode('term')}>단어 적기</button>
+                <button className={`wordbook-pill ${mode === 'definition' ? 'active' : ''}`} onClick={() => setMode('definition')}>뜻 적기</button>
+                <button className={`wordbook-pill ${mode === 'shuffle' ? 'active' : ''}`} onClick={() => setMode('shuffle')}>셔플</button>
+              </div>
+            </div>
+            <div>
+              <span className="wordbook-study-label">순서</span>
+              <div className="wordbook-pill-row">
+                <button className={`wordbook-pill ${order === 'normal' ? 'active' : ''}`} onClick={() => setOrder('normal')}>정방향</button>
+                <button className={`wordbook-pill ${order === 'random' ? 'active' : ''}`} onClick={() => setOrder('random')}>셔플</button>
+              </div>
+            </div>
+            <div className="wordbook-study-actions">
+              <button className="wordbook-study-btn" onClick={handleStudyStart}>학습 시작</button>
+              {wrongCount > 0 && (
+                <button
+                  className="wordbook-study-btn secondary"
+                  onClick={() => router.push(`/${userId}/wordbook/${wordbookId}/review`)}
+                >
+                  복습하기 ({wrongCount})
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {showCreateForm && (
           <div className="wordbook-form">

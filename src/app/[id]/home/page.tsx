@@ -16,7 +16,7 @@ export default async function HomePage({ params }: Props) {
 
   const { data: profile } = await supabase
     .from('profile')
-    .select('streak')
+    .select('streak, last_login_at')
     .eq('user_id', id)
     .single()
 
@@ -24,7 +24,7 @@ export default async function HomePage({ params }: Props) {
     <div>
       <TopNav />
       <main className="home-container">
-        <StreakCard streak={profile?.streak ?? 0} />
+        <StreakCard streak={profile?.streak ?? 0} lastLoginAt={profile?.last_login_at ?? null} />
         <ActionTabsCard userId={id} />
       </main>
       <BottomNav userId={id} />

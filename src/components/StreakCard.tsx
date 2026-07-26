@@ -3,19 +3,53 @@
 
 import { useState } from 'react'
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
+import { FireIcon } from '@heroicons/react/24/solid'
+import { getLocalDateStr } from '@/utils/date'
 import '@/styles/streakcard.css'
 
 type Props = {
   streak: number
+  lastLoginAt: string | null
 }
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
-export default function StreakCard({ streak }: Props) {
+// flame grows bigger and hotter-colored the longer the streak runs
+function getFlameStyle(streak: number) {
+  if (streak <= 0) return { color: 'var(--text-secondary)', size: 18 }
+  if (streak < 3) return { color: 'var(--orange-40)', size: 20 }
+  if (streak < 7) return { color: 'var(--orange)', size: 24 }
+  if (streak < 30) return { color: '#f2541b', size: 28 }
+  return { color: '#ef4444', size: 32 }
+}
+
+// the streak is just a consecutive-day count + the last attended date, so the
+// attended set is derived (no per-day attendance log exists) as the run of
+// `streak` days ending at lastLoginAt
+function getAttendedDates(streak: number, lastLoginAt: string | null): Set<string> {
+  const set = new Set<string>()
+  if (!lastLoginAt || streak <= 0) return set
+  const last = new Date(`${lastLoginAt.slice(0, 10)}T00:00:00`)
+  for (let i = 0; i < streak; i++) {
+    const d = new Date(last)
+    d.setDate(last.getDate() - i)
+    set.add(getLocalDateStr(d))
+  }
+  return set
+}
+
+export default function StreakCard({ streak, lastLoginAt }: Props) {
   const [expanded, setExpanded] = useState(true)
 
-  const today = new Date().getDay()
-  const week = Array.from({ length: 7 }, (_, i) => (today - 3 + i + 7) % 7)
+  const now = new Date()
+  const todayStr = getLocalDateStr(now)
+  const week = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now)
+    d.setDate(now.getDate() - 3 + i)
+    return d
+  })
+  const attendedDates = getAttendedDates(streak, lastLoginAt)
+  const flame = getFlameStyle(streak)
 
   return (
     <div className="streak-card">
@@ -23,7 +57,10 @@ export default function StreakCard({ streak }: Props) {
         className="streak-header"
         onClick={() => setExpanded(prev => !prev)}
       >
-        <span className="streak-count">연속 학습 {streak}일</span>
+        <span className="streak-count-row">
+          <FireIcon width={flame.size} height={flame.size} style={{ color: flame.color }} />
+          <span className="streak-count">연속 학습 {streak}일</span>
+        </span>
         {expanded ? (
           <ChevronUpIcon className="streak-chevron" width={20} height={20} />
         ) : (
@@ -32,14 +69,21 @@ export default function StreakCard({ streak }: Props) {
       </button>
       {expanded && (
         <div className="streak-week-row">
-          {week.map(dayIdx => (
-            <div key={dayIdx} className="streak-day">
-              <div className={`streak-bubble ${dayIdx === today ? 'today' : ''}`}>
-                {DAY_LABELS[dayIdx]}
+          {week.map(d => {
+            const dateStr = getLocalDateStr(d)
+            const isToday = dateStr === todayStr
+            const isAttended = attendedDates.has(dateStr)
+            const bubbleClass = isAttended ? 'attended' : isToday ? 'today' : ''
+
+            return (
+              <div key={dateStr} className="streak-day">
+                <div className={`streak-bubble ${bubbleClass}`}>
+                  {DAY_LABELS[d.getDay()]}
+                </div>
+                {isToday && <div className="streak-indicator-dot" />}
               </div>
-              {dayIdx === today && <div className="streak-indicator-dot" />}
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

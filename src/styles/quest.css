@@ -18,6 +18,10 @@
   margin-bottom: 16px;
 }
 
+.quest-title-weekly {
+  margin-top: 28px;
+}
+
 .quest-empty {
   padding: 40px 16px;
   text-align: center;
@@ -49,6 +53,28 @@
   border-radius: 14px;
   background: var(--orange-10);
   color: var(--orange);
+}
+
+.quest-card.weekly .quest-card-icon {
+  background: var(--purple-10);
+  color: var(--purple);
+}
+
+.quest-card.weekly .quest-progressbar-fill {
+  background: var(--purple);
+}
+
+.quest-card.hidden {
+  border: 1.5px solid #1d4ed8;
+}
+
+.quest-card.hidden .quest-card-icon {
+  background: rgba(29, 78, 216, 0.12);
+  color: #1d4ed8;
+}
+
+.quest-card.hidden .quest-progressbar-fill {
+  background: #1d4ed8;
 }
 
 .quest-card.completed .quest-card-icon {

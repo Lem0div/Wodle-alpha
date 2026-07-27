@@ -30,6 +30,7 @@ export default function StudyPage() {
   const [correctCount, setCorrectCount] = useState(0)
   const [coinResult, setCoinResult] = useState<{ earned: number; bonus: number; exp: number } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [checkedViaEnter, setCheckedViaEnter] = useState(false)
   const correctRef = useRef(0)
   const params = useParams()
   const userId = params.id as string
@@ -99,6 +100,7 @@ export default function StudyPage() {
     const currentWords = isReview ? wrongWords : words
     setAnswer('')
     setResult(null)
+    setCheckedViaEnter(false)
     if (current + 1 >= currentWords.length) {
       await updateStreak()
       await incrementQuestProgress('login', 1)
@@ -122,6 +124,15 @@ export default function StudyPage() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [result])
+
+  // if the answer was checked by pressing Enter (a fast keyboard flow),
+  // auto-advance after a beat so the user doesn't have to hit Enter twice —
+  // checking via the mouse button still waits for an explicit "다음" click
+  useEffect(() => {
+    if (!result || !checkedViaEnter) return
+    const timer = setTimeout(() => handleNext(), 1000)
+    return () => clearTimeout(timer)
+  }, [result, checkedViaEnter])
 
   function startReview() {
     setCurrent(0)
@@ -219,7 +230,11 @@ export default function StudyPage() {
         placeholder="답 입력"
         value={answer}
         onChange={e => setAnswer(e.target.value)}
-        onKeyDown={e => e.key === 'Enter' && handleCheck()}
+        onKeyDown={e => {
+          if (e.key !== 'Enter') return
+          setCheckedViaEnter(true)
+          handleCheck()
+        }}
         disabled={!!result}
         autoFocus
       />

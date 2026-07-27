@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import NoticePopup from '@/components/NoticePopup'
 import { CurrencyDollarIcon, BellIcon, Cog6ToothIcon } from '@heroicons/react/24/outline'
+import { expRequiredForLevel } from '@/utils/level'
 import '@/styles/topnav.css'
 
 type Profile = {
@@ -26,7 +27,12 @@ export default function TopNav() {
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
+      // getSession() reads the already-verified local session instead of
+      // re-checking with the auth server over the network — getUser() here
+      // was adding a slow round trip (and a silent failure point on flaky
+      // mobile connections) just to read a display-only user id
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
       if (!user) return
       setUserId(user.id)
 
@@ -68,7 +74,11 @@ export default function TopNav() {
 
   if (!profile || !userId) return null
 
-  const expPercent = (profile.exp % 1000) / 10
+  const expForCurrentLevel = expRequiredForLevel(profile.lv)
+  const expForNextLevel = expRequiredForLevel(profile.lv + 1)
+  const expIntoLevel = profile.exp - expForCurrentLevel
+  const expNeededForLevel = expForNextLevel - expForCurrentLevel
+  const expPercent = (expIntoLevel / expNeededForLevel) * 100
 
   return (
     <>
@@ -118,7 +128,7 @@ export default function TopNav() {
           <div className="topnav-expbar">
             <div className="topnav-expbar-fill" style={{ width: `${expPercent}%` }} />
           </div>
-          <span className="topnav-exp-text">{profile.exp % 1000} / 1000</span>
+          <span className="topnav-exp-text">{expIntoLevel} / {expNeededForLevel}</span>
         </div>
       </nav>
       {showNotice && <NoticePopup onClose={() => setShowNotice(false)} />}

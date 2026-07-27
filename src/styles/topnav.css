@@ -70,7 +70,13 @@
   padding: 4px 10px;
   font-size: 13px;
   font-weight: 600;
+  line-height: 1;
   color: var(--orange);
+}
+
+.topnav-coin svg {
+  flex-shrink: 0;
+  display: block;
 }
 
 .topnav-bell {

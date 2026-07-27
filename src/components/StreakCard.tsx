@@ -1,7 +1,7 @@
 // src/components/StreakCard.tsx
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { FireIcon } from '@heroicons/react/24/solid'
 import { getLocalDateStr } from '@/utils/date'
@@ -49,7 +49,24 @@ export default function StreakCard({ streak, lastLoginAt }: Props) {
     return d
   })
   const attendedDates = getAttendedDates(streak, lastLoginAt)
+  const isTodayAttended = attendedDates.has(todayStr)
   const flame = getFlameStyle(streak)
+
+  const [animateFlame, setAnimateFlame] = useState(false)
+
+  // play the flame's "level up" pop once — the first time home is visited
+  // after today's check-in, not on every subsequent visit/refresh that day.
+  // Must stay an effect (not a lazy useState initializer) because this
+  // component is server-rendered first — localStorage doesn't exist there,
+  // and an effect is the one place guaranteed to run client-only.
+  useEffect(() => {
+    if (!isTodayAttended) return
+    const key = `wodle-flame-animated-${todayStr}`
+    if (localStorage.getItem(key)) return
+    localStorage.setItem(key, '1')
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronizing with localStorage (an external system), not deriving from props/state
+    setAnimateFlame(true)
+  }, [todayStr, isTodayAttended])
 
   return (
     <div className="streak-card">
@@ -58,7 +75,12 @@ export default function StreakCard({ streak, lastLoginAt }: Props) {
         onClick={() => setExpanded(prev => !prev)}
       >
         <span className="streak-count-row">
-          <FireIcon width={flame.size} height={flame.size} style={{ color: flame.color }} />
+          <FireIcon
+            width={flame.size}
+            height={flame.size}
+            style={{ color: flame.color }}
+            className={animateFlame ? 'streak-flame-pop' : ''}
+          />
           <span className="streak-count">연속 학습 {streak}일</span>
         </span>
         {expanded ? (

@@ -9,7 +9,11 @@
 
 html, body {
   max-width: 100vw;
-  overflow-x: hidden;
+  /* overflow-x: hidden would make overflow-y implicitly "auto", turning body
+     into its own scroll container — that breaks position: sticky on
+     children like TopNav, since sticky then computes against body's box
+     instead of the viewport that's actually scrolling. clip avoids that. */
+  overflow-x: clip;
 }
 
 body {

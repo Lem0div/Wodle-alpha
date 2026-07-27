@@ -29,6 +29,7 @@ export default function ReviewPage() {
   const [correctCount, setCorrectCount] = useState(0)
   const [coinResult, setCoinResult] = useState<{ earned: number; bonus: number; exp: number } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [checkedViaEnter, setCheckedViaEnter] = useState(false)
   const correctRef = useRef(0)
   const params = useParams()
   const userId = params.id as string
@@ -97,6 +98,7 @@ export default function ReviewPage() {
   async function handleNext() {
     setAnswer('')
     setResult(null)
+    setCheckedViaEnter(false)
     if (current + 1 >= words.length) {
       const coins = await awardCoins(correctRef.current)
       setCoinResult(coins)
@@ -119,6 +121,15 @@ export default function ReviewPage() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [result])
+
+  // if the answer was checked by pressing Enter (a fast keyboard flow),
+  // auto-advance after a beat so the user doesn't have to hit Enter twice —
+  // checking via the mouse button still waits for an explicit "다음" click
+  useEffect(() => {
+    if (!result || !checkedViaEnter) return
+    const timer = setTimeout(() => handleNext(), 1000)
+    return () => clearTimeout(timer)
+  }, [result, checkedViaEnter])
 
   const progress = words.length > 0 ? Math.round(((current + (result ? 1 : 0)) / words.length) * 100) : 0
 
@@ -197,7 +208,11 @@ export default function ReviewPage() {
         placeholder="답 입력"
         value={answer}
         onChange={e => setAnswer(e.target.value)}
-        onKeyDown={e => e.key === 'Enter' && handleCheck()}
+        onKeyDown={e => {
+          if (e.key !== 'Enter') return
+          setCheckedViaEnter(true)
+          handleCheck()
+        }}
         disabled={!!result}
         autoFocus
       />

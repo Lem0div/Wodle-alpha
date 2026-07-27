@@ -2,6 +2,10 @@
 .study-container {
   max-width: 480px;
   min-height: 100vh;
+  /* dvh tracks the *visible* viewport, so this container (and the question
+     card below) shrinks when the on-screen keyboard opens instead of
+     pushing the answer input off-screen */
+  min-height: 100dvh;
   margin: 0 auto;
   padding: 24px 16px;
   display: flex;
@@ -56,19 +60,18 @@
 }
 
 .study-card {
-  flex: 1;
-  min-height: 200px;
+  min-height: 110px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px 20px;
+  padding: 20px;
   background: var(--bg-secondary);
   border-radius: 20px;
   text-align: center;
 }
 
 .study-question {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text);
   word-break: break-word;

@@ -4,7 +4,8 @@ import { getLevelForExp } from '@/utils/level'
 
 export async function awardCoins(correctCount: number): Promise<{ earned: number; bonus: number; exp: number }> {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
   if (!user) return { earned: 0, bonus: 0, exp: 0 }
 
   const base = correctCount

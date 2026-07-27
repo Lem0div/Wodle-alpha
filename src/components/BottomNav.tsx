@@ -2,6 +2,8 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { getAvailableHiddenQuest } from '@/utils/quest'
 import {
   HomeIcon,
   ChartBarIcon,
@@ -30,6 +32,11 @@ const TABS = [
 export default function BottomNav({ userId }: Props) {
   const pathname = usePathname()
   const router = useRouter()
+  const [hiddenQuestAvailable, setHiddenQuestAvailable] = useState(false)
+
+  useEffect(() => {
+    getAvailableHiddenQuest(userId).then(quest => setHiddenQuestAvailable(!!quest))
+  }, [userId])
 
   return (
     <nav className="bottom-nav">
@@ -44,7 +51,12 @@ export default function BottomNav({ userId }: Props) {
             onClick={() => router.push(href)}
             className={`bottom-nav-item ${isActive ? 'active' : ''}`}
           >
-            <Icon className="bottom-nav-icon" width={24} height={24} />
+            <span className="bottom-nav-icon-wrap">
+              <Icon className="bottom-nav-icon" width={24} height={24} />
+              {tab.key === 'quest' && hiddenQuestAvailable && (
+                <span className="bottom-nav-hidden-badge">!</span>
+              )}
+            </span>
             <span className="bottom-nav-label">{tab.label}</span>
           </button>
         )

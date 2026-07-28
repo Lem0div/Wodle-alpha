@@ -8,7 +8,7 @@ export const WEEKLY_QUEST_COUNT = 2
 export const HIDDEN_QUEST_COUNT = 1
 // very low odds — rolled fresh each day per user, harder + better-rewarded
 // than even weekly quests when it does show up
-export const HIDDEN_QUEST_CHANCE = 0.05
+export const HIDDEN_QUEST_CHANCE = 0.02
 
 export type QuestPeriod = 'daily' | 'weekly' | 'hidden'
 

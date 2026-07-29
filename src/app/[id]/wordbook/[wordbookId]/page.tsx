@@ -46,6 +46,7 @@ export default function WordbookDetailPage() {
 
   const [visionLoading, setVisionLoading] = useState(false)
   const [visionStep, setVisionStep] = useState('')
+  const [visionError, setVisionError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -153,6 +154,7 @@ export default function WordbookDetailPage() {
     if (!file) return
 
     setVisionLoading(true)
+    setVisionError('')
 
     try {
       setVisionStep('이미지 압축 중...')
@@ -166,11 +168,16 @@ export default function WordbookDetailPage() {
       })
 
       const data = await res.json()
+
+      if (!res.ok) {
+        setVisionError(data.error ?? '분석에 실패했어요. 다시 시도해주세요.')
+        return
+      }
+
       const extracted: { term: string; definition: string }[] = data.words ?? []
 
       if (extracted.length === 0) {
-        setVisionLoading(false)
-        setVisionStep('')
+        setVisionError('사진에서 단어를 찾지 못했어요.')
         return
       }
 
@@ -182,6 +189,8 @@ export default function WordbookDetailPage() {
 
       if (inserted) setWords(prev => [...inserted, ...prev])
       await incrementQuestProgress('word_add', extracted.length)
+    } catch {
+      setVisionError('분석 중 오류가 발생했어요. 다시 시도해주세요.')
     } finally {
       setVisionLoading(false)
       setVisionStep('')
@@ -333,6 +342,7 @@ export default function WordbookDetailPage() {
           <CameraIcon width={18} height={18} />
           {visionLoading ? visionStep : '사진으로 단어 추가'}
         </button>
+        {visionError && <p className="wordbook-vision-error">{visionError}</p>}
 
         {!loading && words.length === 0 && !showCreateForm && (
           <div className="wordbook-empty-state">아직 추가한 단어가 없어요.</div>

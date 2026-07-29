@@ -99,3 +99,13 @@
 .streak-flame-pop {
   animation: streak-flame-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+/* 150일+ 전용 — 단색 아이콘을 hue-rotate로 계속 돌려서 무지개색처럼 보이게 함 */
+@keyframes streak-flame-rainbow {
+  from { filter: hue-rotate(0deg) saturate(1.4); }
+  to { filter: hue-rotate(360deg) saturate(1.4); }
+}
+
+.streak-flame-rainbow {
+  animation: streak-flame-rainbow 2.5s linear infinite;
+}

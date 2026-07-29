@@ -18,6 +18,7 @@ import {
   pickQuestIds,
   getPeriodKey,
   getAvailableHiddenQuest,
+  getQuestReroll,
   DAILY_QUEST_COUNT,
   WEEKLY_QUEST_COUNT,
   type QuestPeriod,
@@ -87,8 +88,9 @@ export default function QuestPage() {
       const dailyPool = (questData ?? []).filter(q => q.period === 'daily')
       const weeklyPool = (questData ?? []).filter(q => q.period === 'weekly')
 
-      const dailyIds = pickQuestIds(dailyPool.map(q => q.id), user.id, dailyKey, DAILY_QUEST_COUNT)
-      const weeklyIds = pickQuestIds(weeklyPool.map(q => q.id), user.id, weeklyKey, WEEKLY_QUEST_COUNT)
+      const reroll = await getQuestReroll(supabase, user.id)
+      const dailyIds = pickQuestIds(dailyPool.map(q => q.id), user.id, dailyKey, DAILY_QUEST_COUNT, reroll)
+      const weeklyIds = pickQuestIds(weeklyPool.map(q => q.id), user.id, weeklyKey, WEEKLY_QUEST_COUNT, reroll)
 
       const hidden = await getAvailableHiddenQuest(user.id)
 

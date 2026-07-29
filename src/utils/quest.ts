@@ -8,35 +8,49 @@ export const WEEKLY_QUEST_COUNT = 2
 export const HIDDEN_QUEST_COUNT = 1
 // very low odds — rolled fresh each day per user, harder + better-rewarded
 // than even weekly quests when it does show up
-export const HIDDEN_QUEST_CHANCE = 0.02
+export const HIDDEN_QUEST_CHANCE = 0.05
 
 export type QuestPeriod = 'daily' | 'weekly' | 'hidden'
 
-// Deterministic per-user, per-period shuffle — same user + same period key
-// always picks the same quest ids, no need to persist an "assignment"
-// anywhere. periodKey is a day string for daily quests, a week-start string
-// for weekly ones, so the same function serves both.
-function seededShuffle<T>(arr: T[], seed: string): T[] {
+// A plain "h = h*31 + charCode" hash barely changes for near-identical seeds
+// (e.g. "...-2026-07-27" vs "...-2026-07-28" differ by one character), so
+// consecutive days kept rolling the same quests. This runs the accumulated
+// hash through MurmurHash3's finalizer, which avalanches a 1-bit input
+// change into a fully different 32-bit output.
+function hashToUnitFloat(seed: string): number {
   let h = 0
   for (let i = 0; i < seed.length; i++) {
     h = (h * 31 + seed.charCodeAt(i)) >>> 0
   }
-  function next() {
-    h ^= h << 13; h >>>= 0
-    h ^= h >>> 17
-    h ^= h << 5; h >>>= 0
-    return h / 4294967296
-  }
+  h ^= h >>> 16
+  h = Math.imul(h, 0x85ebca6b) >>> 0
+  h ^= h >>> 13
+  h = Math.imul(h, 0xc2b2ae35) >>> 0
+  h ^= h >>> 16
+  return (h >>> 0) / 4294967296
+}
+
+// Deterministic per-user, per-period shuffle — same user + same period key
+// always picks the same quest ids, no need to persist an "assignment"
+// anywhere. periodKey is a day string for daily quests, a week-start string
+// for weekly ones, so the same function serves both. Each Fisher-Yates draw
+// is its own independent hash (seed + draw index) rather than one chained
+// PRNG state, so the picks for neighboring seeds don't stay correlated.
+function seededShuffle<T>(arr: T[], seed: string): T[] {
   const result = [...arr]
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(next() * (i + 1))
+  let drawIndex = 0
+  for (let i = result.length - 1; i > 0; i--, drawIndex++) {
+    const j = Math.floor(hashToUnitFloat(`${seed}#${drawIndex}`) * (i + 1))
     ;[result[i], result[j]] = [result[j], result[i]]
   }
   return result
 }
 
-export function pickQuestIds(allIds: number[], userId: string, periodKey: string, count: number): number[] {
-  return seededShuffle(allIds, `${userId}-${periodKey}`)
+// reroll is profile.quest_reroll — bumped by the admin panel's "초기화"
+// button so the selection actually changes on demand, instead of staying
+// pinned to the same picks until the period key itself rolls over.
+export function pickQuestIds(allIds: number[], userId: string, periodKey: string, count: number, reroll = 0): number[] {
+  return seededShuffle(allIds, `${userId}-${periodKey}-r${reroll}`)
     .slice(0, count)
     .sort((a, b) => a - b)
 }
@@ -45,18 +59,16 @@ export function getPeriodKey(period: QuestPeriod, now: Date = new Date()): strin
   return period === 'weekly' ? getWeekStartStr(now) : getLocalDateStr(now)
 }
 
-function hashToUnitFloat(seed: string): number {
-  let h = 0
-  for (let i = 0; i < seed.length; i++) {
-    h = (h * 31 + seed.charCodeAt(i)) >>> 0
-  }
-  return h / 4294967296
+export async function getQuestReroll(supabase: ReturnType<typeof createClient>, userId: string): Promise<number> {
+  const { data } = await supabase.from('profile').select('quest_reroll').eq('user_id', userId).single()
+  return data?.quest_reroll ?? 0
 }
 
 // deterministic per-user, per-day dice roll for whether a hidden quest is
 // even in play today — same user + same day always rolls the same result
-export function isHiddenQuestRolled(userId: string, dateKey: string): boolean {
-  return hashToUnitFloat(`${userId}-${dateKey}-hidden-roll`) < HIDDEN_QUEST_CHANCE
+// (unless rerolled — see pickQuestIds)
+export function isHiddenQuestRolled(userId: string, dateKey: string, reroll = 0): boolean {
+  return hashToUnitFloat(`${userId}-${dateKey}-r${reroll}-hidden-roll`) < HIDDEN_QUEST_CHANCE
 }
 
 export type HiddenQuest = {
@@ -83,8 +95,9 @@ export async function getAvailableHiddenQuest(userId?: string): Promise<HiddenQu
   }
   if (!uid) return null
 
+  const reroll = await getQuestReroll(supabase, uid)
   const today = getLocalDateStr()
-  if (!isHiddenQuestRolled(uid, today)) return null
+  if (!isHiddenQuestRolled(uid, today, reroll)) return null
 
   const { data: hiddenPool } = await supabase
     .from('quest')
@@ -93,7 +106,7 @@ export async function getAvailableHiddenQuest(userId?: string): Promise<HiddenQu
 
   if (!hiddenPool || hiddenPool.length === 0) return null
 
-  const pickedIds = pickQuestIds(hiddenPool.map(q => q.id), uid, today, HIDDEN_QUEST_COUNT)
+  const pickedIds = pickQuestIds(hiddenPool.map(q => q.id), uid, today, HIDDEN_QUEST_COUNT, reroll)
   const quest = hiddenPool.find(q => pickedIds.includes(q.id))
   if (!quest) return null
 
@@ -133,6 +146,7 @@ export async function incrementQuestProgress(eventKey: string, amount: number) {
 
   if (!matchingQuests || matchingQuests.length === 0) return
 
+  const reroll = await getQuestReroll(supabase, user.id)
   const now = new Date()
 
   for (const period of ['daily', 'weekly', 'hidden'] as QuestPeriod[]) {
@@ -142,11 +156,11 @@ export async function incrementQuestProgress(eventKey: string, amount: number) {
     const periodKey = getPeriodKey(period, now)
 
     // hidden quests only exist at all on days the rare roll hits
-    if (period === 'hidden' && !isHiddenQuestRolled(user.id, periodKey)) continue
+    if (period === 'hidden' && !isHiddenQuestRolled(user.id, periodKey, reroll)) continue
 
     const { data: allInPeriod } = await supabase.from('quest').select('id').eq('period', period)
     const count = period === 'daily' ? DAILY_QUEST_COUNT : period === 'weekly' ? WEEKLY_QUEST_COUNT : HIDDEN_QUEST_COUNT
-    const assignedIds = pickQuestIds((allInPeriod ?? []).map(q => q.id), user.id, periodKey, count)
+    const assignedIds = pickQuestIds((allInPeriod ?? []).map(q => q.id), user.id, periodKey, count, reroll)
 
     for (const quest of questsInPeriod) {
       if (!assignedIds.includes(quest.id)) continue

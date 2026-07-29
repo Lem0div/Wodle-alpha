@@ -125,6 +125,28 @@
   margin-bottom: 16px;
 }
 
+.wordbook-btn-photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 16px;
+  border: 1.5px dashed var(--border);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: none;
+  cursor: pointer;
+}
+
+.wordbook-btn-photo:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .wordbook-input {
   padding: 10px 12px;
   border: 1.5px solid var(--border);

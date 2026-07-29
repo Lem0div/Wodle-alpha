@@ -14,13 +14,34 @@ type Props = {
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
-// flame grows bigger and hotter-colored the longer the streak runs
-function getFlameStyle(streak: number) {
-  if (streak <= 0) return { color: 'var(--text-secondary)', size: 18 }
-  if (streak < 3) return { color: 'var(--orange-40)', size: 20 }
-  if (streak < 7) return { color: 'var(--orange)', size: 24 }
-  if (streak < 30) return { color: '#f2541b', size: 28 }
-  return { color: '#ef4444', size: 32 }
+function hexToRgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+
+function mixHex(from: string, to: string, t: number): string {
+  const [r1, g1, b1] = hexToRgb(from)
+  const [r2, g2, b2] = hexToRgb(to)
+  const r = Math.round(r1 + (r2 - r1) * t)
+  const g = Math.round(g1 + (g2 - g1) * t)
+  const b = Math.round(b1 + (b2 - b1) * t)
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`
+}
+
+// flame grows bigger and hotter-colored the longer the streak runs, then
+// cools into blue past 50 days and turns permanently rainbow at 150+
+function getFlameStyle(streak: number): { color: string; size: number; rainbow?: boolean } {
+  if (streak <= 0) return { color: 'var(--text-secondary)', size: 16 }
+  if (streak <= 5) return { color: 'var(--orange-40)', size: 18 } // 작은 불씨
+  if (streak <= 10) return { color: 'var(--orange)', size: 21 } // 작은 불
+  if (streak <= 29) return { color: '#f2541b', size: 26 } // 11~50 구간 (전에 쓰던 톤)
+  if (streak <= 50) return { color: '#ef4444', size: 30 }
+  if (streak <= 100) {
+    const t = (streak - 50) / (100 - 50)
+    return { color: mixHex('#ef4444', '#38bdf8', t), size: 30 + Math.round(t * 8) }
+  }
+  if (streak < 150) return { color: '#38bdf8', size: 38 }
+  return { color: '#38bdf8', size: 40, rainbow: true } // 150+, 그 후로는 더 안 바뀜
 }
 
 // the streak is just a consecutive-day count + the last attended date, so the
@@ -79,7 +100,7 @@ export default function StreakCard({ streak, lastLoginAt }: Props) {
             width={flame.size}
             height={flame.size}
             style={{ color: flame.color }}
-            className={animateFlame ? 'streak-flame-pop' : ''}
+            className={`${animateFlame ? 'streak-flame-pop' : ''} ${flame.rainbow ? 'streak-flame-rainbow' : ''}`}
           />
           <span className="streak-count">연속 학습 {streak}일</span>
         </span>

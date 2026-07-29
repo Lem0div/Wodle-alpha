@@ -4,7 +4,6 @@
 import { createClient } from '@/utils/supabase/client'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import TopNav from '@/components/TopNav'
 import BottomNav from '@/components/BottomNav'
 import '@/styles/setting.css'
 
@@ -18,6 +17,7 @@ export default function SettingPage() {
   const [editingName, setEditingName] = useState(false)
   const [loading, setLoading] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -34,7 +34,7 @@ export default function SettingPage() {
 
       const { data: profile } = await supabase
         .from('profile')
-        .select('username')
+        .select('username, is_admin')
         .eq('user_id', user.id)
         .single()
 
@@ -47,7 +47,10 @@ export default function SettingPage() {
           document.documentElement.classList.remove('dark')
         }
       }
-      if (profile) setUsername(profile.username)
+      if (profile) {
+        setUsername(profile.username)
+        setIsAdmin(profile.is_admin)
+      }
     }
     fetchSettings() // 여기가 빠져있었음!
   }, [])
@@ -133,6 +136,13 @@ export default function SettingPage() {
             <button className="setting-btn" onClick={() => setEditingName(true)}>닉네임 변경</button>
           )}
         </div>
+        {isAdmin && (
+          <div className="setting-section">
+            <button className="setting-btn" onClick={() => router.push(`/${userId}/admin`)}>
+              🛠 관리자 패널
+            </button>
+          </div>
+        )}
         <div className="setting-section">
           <button className="setting-btn" onClick={handleLogout}>로그아웃</button>
           {deleteConfirm ? (

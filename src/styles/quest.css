@@ -65,16 +65,16 @@
 }
 
 .quest-card.hidden {
-  border: 1.5px solid #1d4ed8;
+  border: 1.5px solid #38bdf8;
 }
 
 .quest-card.hidden .quest-card-icon {
-  background: rgba(29, 78, 216, 0.12);
-  color: #1d4ed8;
+  background: rgba(56, 189, 248, 0.14);
+  color: #38bdf8;
 }
 
 .quest-card.hidden .quest-progressbar-fill {
-  background: #1d4ed8;
+  background: #38bdf8;
 }
 
 .quest-card.completed .quest-card-icon {

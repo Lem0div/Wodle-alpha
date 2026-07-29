@@ -3,10 +3,10 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import TopNav from '@/components/TopNav'
 import BottomNav from '@/components/BottomNav'
-import { PlusIcon, PencilIcon, TrashIcon, ArrowLeftIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, PencilIcon, TrashIcon, ArrowLeftIcon, CameraIcon } from '@heroicons/react/24/outline'
 import { incrementQuestProgress } from '@/utils/quest'
 import '@/styles/wordbook.css'
 
@@ -40,6 +40,13 @@ export default function WordbookDetailPage() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newTerm, setNewTerm] = useState('')
   const [newDefinition, setNewDefinition] = useState('')
+  const [suggestedDef, setSuggestedDef] = useState('')
+  const [suggesting, setSuggesting] = useState(false)
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const [visionLoading, setVisionLoading] = useState(false)
+  const [visionStep, setVisionStep] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTerm, setEditTerm] = useState('')
@@ -82,6 +89,19 @@ export default function WordbookDetailPage() {
     fetchData()
   }, [wordbookId])
 
+  async function suggestDefinition(value: string) {
+    if (!value.trim()) { setSuggestedDef(''); return }
+    setSuggesting(true)
+    const res = await fetch('/api/suggest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ term: value })
+    })
+    const data = await res.json()
+    setSuggestedDef(data.definition ?? '')
+    setSuggesting(false)
+  }
+
   async function handleCreate() {
     if (!newTerm.trim() || !newDefinition.trim()) return
 
@@ -94,8 +114,79 @@ export default function WordbookDetailPage() {
     if (data) setWords(prev => [data, ...prev])
     setNewTerm('')
     setNewDefinition('')
+    setSuggestedDef('')
     setShowCreateForm(false)
     await incrementQuestProgress('word_add', 1)
+  }
+
+  function compressImage(file: File): Promise<{ base64: string; mimeType: string }> {
+    return new Promise((resolve) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const MAX = 1024
+        let { width, height } = img
+        if (width > MAX || height > MAX) {
+          if (width > height) {
+            height = Math.round((height * MAX) / width)
+            width = MAX
+          } else {
+            width = Math.round((width * MAX) / height)
+            height = MAX
+          }
+        }
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0, width, height)
+        const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1]
+        URL.revokeObjectURL(url)
+        resolve({ base64, mimeType: 'image/jpeg' })
+      }
+      img.src = url
+    })
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setVisionLoading(true)
+
+    try {
+      setVisionStep('이미지 압축 중...')
+      const { base64, mimeType } = await compressImage(file)
+
+      setVisionStep('AI가 단어 분석 중...')
+      const res = await fetch('/api/vision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64, mimeType })
+      })
+
+      const data = await res.json()
+      const extracted: { term: string; definition: string }[] = data.words ?? []
+
+      if (extracted.length === 0) {
+        setVisionLoading(false)
+        setVisionStep('')
+        return
+      }
+
+      setVisionStep(`${extracted.length}개 단어 저장 중...`)
+      const { data: inserted } = await supabase
+        .from('word')
+        .insert(extracted.map(w => ({ term: w.term, definition: w.definition, wordbook_id: wordbookId })))
+        .select('id, term, definition, wrong_count, created_at')
+
+      if (inserted) setWords(prev => [...inserted, ...prev])
+      await incrementQuestProgress('word_add', extracted.length)
+    } finally {
+      setVisionLoading(false)
+      setVisionStep('')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   function startEdit(word: Word) {
@@ -194,14 +285,30 @@ export default function WordbookDetailPage() {
               className="wordbook-input"
               placeholder="단어 (예: apple)"
               value={newTerm}
-              onChange={e => setNewTerm(e.target.value)}
+              onChange={e => {
+                setNewTerm(e.target.value)
+                if (debounceTimer.current) clearTimeout(debounceTimer.current)
+                debounceTimer.current = setTimeout(() => suggestDefinition(e.target.value), 800)
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && suggestedDef && !newDefinition) {
+                  setNewDefinition(suggestedDef)
+                  setSuggestedDef('')
+                }
+              }}
             />
             <input
               className="wordbook-input"
-              placeholder="뜻 (예: 사과)"
+              placeholder={suggesting ? '추천 중...' : suggestedDef || '뜻 (예: 사과)'}
               value={newDefinition}
               onChange={e => setNewDefinition(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleCreate()}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && newDefinition) { handleCreate(); return }
+                if (e.key === 'Enter' && !newDefinition && suggestedDef) {
+                  setNewDefinition(suggestedDef)
+                  setSuggestedDef('')
+                }
+              }}
             />
             <div className="wordbook-form-actions">
               <button className="wordbook-btn-small gray" onClick={() => setShowCreateForm(false)}>취소</button>
@@ -209,6 +316,23 @@ export default function WordbookDetailPage() {
             </div>
           </div>
         )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style={{ display: 'none' }}
+          onChange={handleImageUpload}
+        />
+        <button
+          className="wordbook-btn-photo"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={visionLoading}
+        >
+          <CameraIcon width={18} height={18} />
+          {visionLoading ? visionStep : '사진으로 단어 추가'}
+        </button>
 
         {!loading && words.length === 0 && !showCreateForm && (
           <div className="wordbook-empty-state">아직 추가한 단어가 없어요.</div>

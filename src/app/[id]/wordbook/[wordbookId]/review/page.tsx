@@ -27,7 +27,7 @@ export default function ReviewPage() {
   const [finished, setFinished] = useState(false)
   const [mode, setMode] = useState('term')
   const [correctCount, setCorrectCount] = useState(0)
-  const [coinResult, setCoinResult] = useState<{ earned: number; bonus: number; exp: number } | null>(null)
+  const [coinResult, setCoinResult] = useState<{ earned: number; bonus: number; exp: number; boostMultiplier: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [checkedViaEnter, setCheckedViaEnter] = useState(false)
   const correctRef = useRef(0)
@@ -160,6 +160,7 @@ export default function ReviewPage() {
               <span>🪙 +{coinResult.earned} 코인</span>
               {coinResult.bonus > 0 && <span className="study-coin-bonus">🎁 보너스 +{coinResult.bonus}</span>}
               <span>⭐ +{coinResult.exp} 경험치</span>
+              {coinResult.boostMultiplier > 1 && <span className="study-coin-bonus">⚡ {coinResult.boostMultiplier}배 부스터 적용!</span>}
             </div>
           )}
           <div className="study-finish-actions">

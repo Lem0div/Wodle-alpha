@@ -10,7 +10,7 @@ export async function updateStreak() {
 
   const { data: profile } = await supabase
     .from('profile')
-    .select('streak, last_login_at')
+    .select('streak, last_login_at, streak_freeze_count')
     .eq('user_id', user.id)
     .single()
 
@@ -32,11 +32,18 @@ export async function updateStreak() {
 
   const isConsecutive = lastLogin === yesterdayStr
 
+  // a streak freeze (bought from the shop) auto-protects: if there was an
+  // active streak and a day got missed, spend one freeze instead of
+  // resetting to 1
+  const canUseFreeze = !isConsecutive && profile.streak > 0 && profile.streak_freeze_count > 0
+  const keepsStreak = isConsecutive || canUseFreeze
+
   await supabase
     .from('profile')
     .update({
-      streak: isConsecutive ? profile.streak + 1 : 1,
-      last_login_at: today
+      streak: keepsStreak ? profile.streak + 1 : 1,
+      last_login_at: today,
+      ...(canUseFreeze ? { streak_freeze_count: profile.streak_freeze_count - 1 } : {}),
     })
     .eq('user_id', user.id)
 }

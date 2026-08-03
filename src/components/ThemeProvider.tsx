@@ -2,6 +2,7 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
+import { applyThemeColor } from '@/utils/shop'
 import { useEffect } from 'react'
 
 export default function ThemeProvider() {
@@ -24,6 +25,22 @@ export default function ThemeProvider() {
         document.documentElement.classList.add('dark')
       } else {
         document.documentElement.classList.remove('dark')
+      }
+
+      const { data: profile } = await supabase
+        .from('profile')
+        .select('equipped_theme')
+        .eq('user_id', userId)
+        .single()
+
+      if (profile?.equipped_theme) {
+        const { data: theme } = await supabase
+          .from('shop_item')
+          .select('value')
+          .eq('key', profile.equipped_theme)
+          .single()
+
+        if (theme) applyThemeColor(theme.value)
       }
     }
 

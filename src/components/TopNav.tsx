@@ -14,6 +14,8 @@ type Profile = {
   lv: number
   coin: number
   exp: number
+  titleText: string | null
+  decorationEmoji: string | null
 }
 
 const supabase = createClient()
@@ -38,10 +40,28 @@ export default function TopNav() {
 
       const { data } = await supabase
         .from('profile')
-        .select('username, lv, coin, exp')
+        .select('username, lv, coin, exp, equipped_title, equipped_decoration')
         .eq('user_id', user.id)
         .single()
-      setProfile(data)
+
+      if (!data) return
+
+      const equippedKeys = [data.equipped_title, data.equipped_decoration].filter(Boolean)
+      const { data: equippedItems } = equippedKeys.length > 0
+        ? await supabase.from('shop_item').select('key, value').in('key', equippedKeys)
+        : { data: [] }
+
+      const titleText = equippedItems?.find(i => i.key === data.equipped_title)?.value ?? null
+      const decorationEmoji = equippedItems?.find(i => i.key === data.equipped_decoration)?.value ?? null
+
+      setProfile({
+        username: data.username,
+        lv: data.lv,
+        coin: data.coin,
+        exp: data.exp,
+        titleText,
+        decorationEmoji,
+      })
 
       if (subscribedRef.current) return
       subscribedRef.current = true
@@ -90,7 +110,11 @@ export default function TopNav() {
             </div>
             <div className="topnav-info">
               <span className="topnav-lv">Lv.{profile.lv}</span>
-              <span className="topnav-name">{profile.username}</span>
+              <span className="topnav-name">
+                {profile.decorationEmoji && <span className="topnav-decoration">{profile.decorationEmoji}</span>}
+                {profile.username}
+              </span>
+              {profile.titleText && <span className="topnav-title-badge">{profile.titleText}</span>}
             </div>
           </div>
           <div className="topnav-right">

@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import BottomNav from '@/components/BottomNav'
 import { getLevelForExp, expRequiredForLevel } from '@/utils/level'
-import { getPeriodKey, pickQuestIds, getAvailableHiddenQuest, DAILY_QUEST_COUNT, WEEKLY_QUEST_COUNT } from '@/utils/quest'
+import { getPeriodKey, getAvailableHiddenQuest, computeQuestKeys, rerollQuestSelection } from '@/utils/quest'
 import { getLocalDateStr } from '@/utils/date'
 import '@/styles/admin.css'
 
@@ -18,35 +18,6 @@ type Profile = {
   lv: number
   streak: number
   quest_reroll: number
-}
-
-type SupabaseClient = ReturnType<typeof createClient>
-
-function sameKeySet(a: string[], b: string[]): boolean {
-  if (a.length !== b.length) return false
-  const sortedA = [...a].sort()
-  const sortedB = [...b].sort()
-  return sortedA.every((key, i) => key === sortedB[i])
-}
-
-// pure lookup (no setState) so both the initial-mount effect and the
-// "초기화" button handler can call it without either one calling into the
-// other (which is what set-state-in-effect lint rules dislike)
-async function computeTodaysQuestKeys(supabase: SupabaseClient, userId: string, reroll: number) {
-  const { data: quests } = await supabase.from('quest').select('id, key, period')
-  if (!quests) return { daily: [], weekly: [] }
-
-  const now = new Date()
-  const dailyPool = quests.filter(q => q.period === 'daily')
-  const weeklyPool = quests.filter(q => q.period === 'weekly')
-
-  const dailyIds = pickQuestIds(dailyPool.map(q => q.id), userId, getPeriodKey('daily', now), DAILY_QUEST_COUNT, reroll)
-  const weeklyIds = pickQuestIds(weeklyPool.map(q => q.id), userId, getPeriodKey('weekly', now), WEEKLY_QUEST_COUNT, reroll)
-
-  return {
-    daily: dailyPool.filter(q => dailyIds.includes(q.id)).map(q => q.key),
-    weekly: weeklyPool.filter(q => weeklyIds.includes(q.id)).map(q => q.key),
-  }
 }
 
 export default function AdminPage() {
@@ -72,7 +43,7 @@ export default function AdminPage() {
       setLoading(false)
 
       if (data) {
-        setTodaysQuestKeys(await computeTodaysQuestKeys(supabase, userId, data.quest_reroll))
+        setTodaysQuestKeys(await computeQuestKeys(supabase, userId, data.quest_reroll))
         const hidden = await getAvailableHiddenQuest(userId)
         setHiddenQuestKey(hidden?.key ?? null)
       }
@@ -128,21 +99,8 @@ export default function AdminPage() {
       return
     }
 
-    // bump the reroll counter so the quest *selection* actually changes —
-    // with only a handful of quests to choose from (10 possible daily
-    // combos, 3 weekly ones) a single reroll can coincidentally land back on
-    // the same set, so keep rerolling until it's actually different
-    const previousKeys = todaysQuestKeys
-    let nextReroll = profile.quest_reroll
-    let nextKeys = previousKeys
-    for (let attempt = 0; attempt < 20; attempt++) {
-      nextReroll++
-      nextKeys = await computeTodaysQuestKeys(supabase, userId, nextReroll)
-      const unchanged = sameKeySet(nextKeys.daily, previousKeys.daily) && sameKeySet(nextKeys.weekly, previousKeys.weekly)
-      if (!unchanged) break
-    }
-
-    await supabase.from('profile').update({ quest_reroll: nextReroll }).eq('user_id', userId)
+    // bump the reroll counter so the quest *selection* actually changes too
+    const { reroll: nextReroll, keys: nextKeys } = await rerollQuestSelection(userId)
     setProfile({ ...profile, quest_reroll: nextReroll })
     setTodaysQuestKeys(nextKeys)
 

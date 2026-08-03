@@ -2,6 +2,7 @@
 import { createClient } from '@/utils/supabase/client'
 import { getLocalDateStr, getWeekStartStr } from '@/utils/date'
 import { getLevelForExp } from '@/utils/level'
+import { hashToUnitFloat, seededShuffle } from '@/utils/random'
 
 export const DAILY_QUEST_COUNT = 3
 export const WEEKLY_QUEST_COUNT = 2
@@ -11,40 +12,6 @@ export const HIDDEN_QUEST_COUNT = 1
 export const HIDDEN_QUEST_CHANCE = 0.05
 
 export type QuestPeriod = 'daily' | 'weekly' | 'hidden'
-
-// A plain "h = h*31 + charCode" hash barely changes for near-identical seeds
-// (e.g. "...-2026-07-27" vs "...-2026-07-28" differ by one character), so
-// consecutive days kept rolling the same quests. This runs the accumulated
-// hash through MurmurHash3's finalizer, which avalanches a 1-bit input
-// change into a fully different 32-bit output.
-function hashToUnitFloat(seed: string): number {
-  let h = 0
-  for (let i = 0; i < seed.length; i++) {
-    h = (h * 31 + seed.charCodeAt(i)) >>> 0
-  }
-  h ^= h >>> 16
-  h = Math.imul(h, 0x85ebca6b) >>> 0
-  h ^= h >>> 13
-  h = Math.imul(h, 0xc2b2ae35) >>> 0
-  h ^= h >>> 16
-  return (h >>> 0) / 4294967296
-}
-
-// Deterministic per-user, per-period shuffle — same user + same period key
-// always picks the same quest ids, no need to persist an "assignment"
-// anywhere. periodKey is a day string for daily quests, a week-start string
-// for weekly ones, so the same function serves both. Each Fisher-Yates draw
-// is its own independent hash (seed + draw index) rather than one chained
-// PRNG state, so the picks for neighboring seeds don't stay correlated.
-function seededShuffle<T>(arr: T[], seed: string): T[] {
-  const result = [...arr]
-  let drawIndex = 0
-  for (let i = result.length - 1; i > 0; i--, drawIndex++) {
-    const j = Math.floor(hashToUnitFloat(`${seed}#${drawIndex}`) * (i + 1))
-    ;[result[i], result[j]] = [result[j], result[i]]
-  }
-  return result
-}
 
 // reroll is profile.quest_reroll — bumped by the admin panel's "초기화"
 // button so the selection actually changes on demand, instead of staying
@@ -121,6 +88,61 @@ export async function getAvailableHiddenQuest(userId?: string): Promise<HiddenQu
   if (progress?.completed) return null
 
   return quest
+}
+
+export type QuestKeys = { daily: string[]; weekly: string[] }
+
+function sameKeySet(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false
+  const sortedA = [...a].sort()
+  const sortedB = [...b].sort()
+  return sortedA.every((key, i) => key === sortedB[i])
+}
+
+// today's daily+weekly quest keys for a given reroll value — shared by the
+// admin panel (display) and rerollQuestSelection (comparing before/after)
+export async function computeQuestKeys(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  reroll: number
+): Promise<QuestKeys> {
+  const { data: quests } = await supabase.from('quest').select('id, key, period')
+  if (!quests) return { daily: [], weekly: [] }
+
+  const now = new Date()
+  const dailyPool = quests.filter(q => q.period === 'daily')
+  const weeklyPool = quests.filter(q => q.period === 'weekly')
+
+  const dailyIds = pickQuestIds(dailyPool.map(q => q.id), userId, getPeriodKey('daily', now), DAILY_QUEST_COUNT, reroll)
+  const weeklyIds = pickQuestIds(weeklyPool.map(q => q.id), userId, getPeriodKey('weekly', now), WEEKLY_QUEST_COUNT, reroll)
+
+  return {
+    daily: dailyPool.filter(q => dailyIds.includes(q.id)).map(q => q.key),
+    weekly: weeklyPool.filter(q => weeklyIds.includes(q.id)).map(q => q.key),
+  }
+}
+
+// bumps profile.quest_reroll until today's daily+weekly selection actually
+// differs from before (the pool is small enough — 10 daily combos, 3 weekly
+// — that a single reroll can coincidentally repeat), then persists it.
+// Used by both the admin panel's "초기화" button and the quest-reroll-ticket
+// consumable in the shop.
+export async function rerollQuestSelection(userId: string): Promise<{ reroll: number; keys: QuestKeys }> {
+  const supabase = createClient()
+  const currentReroll = await getQuestReroll(supabase, userId)
+  const previousKeys = await computeQuestKeys(supabase, userId, currentReroll)
+
+  let nextReroll = currentReroll
+  let nextKeys = previousKeys
+  for (let attempt = 0; attempt < 20; attempt++) {
+    nextReroll++
+    nextKeys = await computeQuestKeys(supabase, userId, nextReroll)
+    const unchanged = sameKeySet(nextKeys.daily, previousKeys.daily) && sameKeySet(nextKeys.weekly, previousKeys.weekly)
+    if (!unchanged) break
+  }
+
+  await supabase.from('profile').update({ quest_reroll: nextReroll }).eq('user_id', userId)
+  return { reroll: nextReroll, keys: nextKeys }
 }
 
 type QuestRow = {

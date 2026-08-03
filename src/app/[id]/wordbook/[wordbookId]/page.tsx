@@ -78,13 +78,26 @@ export default function WordbookDetailPage() {
       setMode(wb.last_mode ?? 'term')
       setOrder(wb.last_order ?? 'normal')
 
-      const { data: wordData } = await supabase
-        .from('word')
-        .select('id, term, definition, wrong_count, created_at')
-        .eq('wordbook_id', wordbookId)
-        .order('created_at', { ascending: false })
+      // Supabase caps a single query at 1000 rows by default — page through
+      // with .range() so wordbooks bigger than that still load in full
+      const PAGE_SIZE = 1000
+      let allWords: Word[] = []
+      let from = 0
+      while (true) {
+        const { data: page } = await supabase
+          .from('word')
+          .select('id, term, definition, wrong_count, created_at')
+          .eq('wordbook_id', wordbookId)
+          .order('created_at', { ascending: false })
+          .range(from, from + PAGE_SIZE - 1)
 
-      setWords(wordData ?? [])
+        if (!page || page.length === 0) break
+        allWords = allWords.concat(page)
+        if (page.length < PAGE_SIZE) break
+        from += PAGE_SIZE
+      }
+
+      setWords(allWords)
       setLoading(false)
     }
     fetchData()

@@ -11,7 +11,7 @@ function normalize(str: string): string {
 export function checkAnswer(input: string, correct: string): boolean {
   const normalizedInput = normalize(input)
 
-  // 쉼표로 분리해서 하나라도 맞으면 정답
-  const answers = correct.split(',').map(a => normalize(a))
+  // 쉼표나 세미콜론으로 분리해서 하나라도 맞으면 정답
+  const answers = correct.split(/[,;]/).map(a => normalize(a))
   return answers.some(a => a === normalizedInput)
 }

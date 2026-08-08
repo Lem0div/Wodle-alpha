@@ -14,10 +14,13 @@ import {
   equipItem,
   consumeItem,
   applyThemeColor,
+  todaysRerollSalt,
+  isConsumableSoldOut,
   SHOP_REROLL_COST,
   SHOP_REROLL_DAILY_LIMIT,
   type ShopItem,
   type ShopSlot,
+  type PurchaseLog,
 } from '@/utils/shop'
 import { getLocalDateStr } from '@/utils/date'
 import '@/styles/shop.css'
@@ -39,6 +42,8 @@ export default function ShopPage() {
   const [equipped, setEquipped] = useState<Equipped>({ theme: 'theme_orange', title: null, decoration: null })
   const [streakFreezeCount, setStreakFreezeCount] = useState(0)
   const [rerollsLeft, setRerollsLeft] = useState(SHOP_REROLL_DAILY_LIMIT)
+  const [rerollSalt, setRerollSalt] = useState(0)
+  const [purchaseLog, setPurchaseLog] = useState<PurchaseLog>({})
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
 
@@ -59,7 +64,7 @@ export default function ShopPage() {
 
       const { data: profile } = await supabase
         .from('profile')
-        .select('coin, equipped_theme, equipped_title, equipped_decoration, streak_freeze_count, shop_reroll_count, shop_reroll_date')
+        .select('coin, equipped_theme, equipped_title, equipped_decoration, streak_freeze_count, shop_reroll_count, shop_reroll_date, shop_purchase_log')
         .eq('user_id', user.id)
         .single()
 
@@ -72,8 +77,10 @@ export default function ShopPage() {
         setEquipped({ theme: profile.equipped_theme, title: profile.equipped_title, decoration: profile.equipped_decoration })
         setStreakFreezeCount(profile.streak_freeze_count)
         const today = getLocalDateStr()
-        const usedToday = profile.shop_reroll_date === today ? profile.shop_reroll_count : 0
-        setRerollsLeft(SHOP_REROLL_DAILY_LIMIT - usedToday)
+        const salt = todaysRerollSalt({ count: profile.shop_reroll_count, date: profile.shop_reroll_date }, today)
+        setRerollSalt(salt)
+        setRerollsLeft(SHOP_REROLL_DAILY_LIMIT - salt)
+        setPurchaseLog(profile.shop_purchase_log ?? {})
       }
 
       setSlots(await getTodaysShopSelection(user.id, items))
@@ -95,6 +102,10 @@ export default function ShopPage() {
     return item.type !== 'consumable' && equipped[item.type] === item.key
   }
 
+  function isSoldOut(item: ShopItem) {
+    return item.type === 'consumable' && isConsumableSoldOut(purchaseLog, item.id, getLocalDateStr(), rerollSalt)
+  }
+
   async function handleBuy(item: ShopItem) {
     const result = await purchaseItem(item)
     if (!result.success) { flash(result.error ?? '구매에 실패했어요.'); return }
@@ -102,6 +113,9 @@ export default function ShopPage() {
     setOwned(prev => ({ ...prev, [item.id]: (prev[item.id] ?? 0) + 1 }))
     setCoin(prev => prev - item.price)
     if (item.effect === 'streak_freeze') setStreakFreezeCount(prev => prev + 1)
+    if (item.type === 'consumable') {
+      setPurchaseLog(prev => ({ ...prev, [item.id]: { date: getLocalDateStr(), reroll: rerollSalt } }))
+    }
     flash(`${item.name} 구매 완료!`)
   }
 
@@ -127,7 +141,9 @@ export default function ShopPage() {
     if (!result.success) { flash(result.error ?? '리롤에 실패했어요.'); return }
 
     setCoin(prev => prev - SHOP_REROLL_COST)
-    setRerollsLeft(result.remaining ?? 0)
+    const remaining = result.remaining ?? 0
+    setRerollsLeft(remaining)
+    setRerollSalt(SHOP_REROLL_DAILY_LIMIT - remaining)
     setSlots(await getTodaysShopSelection(userId, allItems))
   }
 
@@ -146,15 +162,11 @@ export default function ShopPage() {
         </div>
 
         <div className="shop-section">
-          <div className="shop-section-header">
-            <h3 className="shop-section-title">오늘의 상점</h3>
-            <button className="shop-reroll-btn" onClick={handleReroll} disabled={rerollsLeft <= 0 || coin < SHOP_REROLL_COST}>
-              🎲 리롤 ({SHOP_REROLL_COST}코인) · 남은 {rerollsLeft}/{SHOP_REROLL_DAILY_LIMIT}
-            </button>
-          </div>
+          <h3 className="shop-section-title">오늘의 상점</h3>
           <div className="shop-grid">
             {slots.map(item => {
               const owned_ = item.type === 'consumable' ? false : isCosmeticOwned(item)
+              const soldOut = isSoldOut(item)
               return (
                 <div key={item.id} className={`shop-card ${item.isHiddenSlot ? 'hidden' : ''}`}>
                   {item.type === 'theme' && <div className="shop-card-swatch" style={{ background: item.value }} />}
@@ -165,6 +177,8 @@ export default function ShopPage() {
                   <div className="shop-card-desc">{item.description}</div>
                   {owned_ ? (
                     <span className="shop-card-owned">보유중</span>
+                  ) : soldOut ? (
+                    <span className="shop-card-owned">품절</span>
                   ) : (
                     <button className="shop-card-btn buy" onClick={() => handleBuy(item)}>
                       🪙 {item.price}
@@ -174,6 +188,9 @@ export default function ShopPage() {
               )
             })}
           </div>
+          <button className="shop-reroll-btn" onClick={handleReroll} disabled={rerollsLeft <= 0 || coin < SHOP_REROLL_COST}>
+            🎲 리롤하기 ({SHOP_REROLL_COST}코인) · 남은 {rerollsLeft}/{SHOP_REROLL_DAILY_LIMIT}
+          </button>
         </div>
 
         <div className="shop-section">

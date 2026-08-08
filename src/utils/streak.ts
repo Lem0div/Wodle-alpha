@@ -30,12 +30,17 @@ export async function updateStreak() {
   yesterday.setDate(yesterday.getDate() - 1)
   const yesterdayStr = getLocalDateStr(yesterday)
 
-  const isConsecutive = lastLogin === yesterdayStr
+  const twoDaysAgo = new Date()
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
+  const twoDaysAgoStr = getLocalDateStr(twoDaysAgo)
 
-  // a streak freeze (bought from the shop) auto-protects: if there was an
-  // active streak and a day got missed, spend one freeze instead of
-  // resetting to 1
-  const canUseFreeze = !isConsecutive && profile.streak > 0 && profile.streak_freeze_count > 0
+  const isConsecutive = lastLogin === yesterdayStr
+  // exactly one day missed (last login was two days ago, not further back)
+  const isOneDayGap = lastLogin === twoDaysAgoStr
+
+  // a streak freeze (bought from the shop) only bridges a single missed day —
+  // skipping 2+ days always resets, no matter how many freezes are banked
+  const canUseFreeze = isOneDayGap && profile.streak > 0 && profile.streak_freeze_count > 0
   const keepsStreak = isConsecutive || canUseFreeze
 
   await supabase

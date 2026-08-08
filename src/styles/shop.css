@@ -29,41 +29,37 @@
   margin-bottom: 24px;
 }
 
-.shop-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
 .shop-section-title {
   font-size: 15px;
   font-weight: 700;
   color: var(--text);
-}
-
-.shop-reroll-btn {
-  padding: 6px 10px;
-  border: 1.5px solid var(--border);
-  border-radius: 99px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text);
-  background: var(--bg-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.shop-reroll-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  margin-bottom: 10px;
 }
 
 .shop-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
+}
+
+.shop-reroll-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  background: var(--orange);
+  cursor: pointer;
+  text-align: center;
+}
+
+.shop-reroll-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .shop-card {
